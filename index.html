@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Truy Tìm Hợp Chất Hữu Cơ - Hóa Học 11</title>
+    <!-- Thư viện MediaPipe Hands & Drawing Utils -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <!-- Google Font Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1e40af;
+            --organic: #059669;
+            --inorganic: #d97706;
+            --bg: #f0f9ff;
+            --card: #ffffff;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+        }
+        body {
+            background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 12px;
+        }
+        .game-container {
+            background: var(--card);
+            width: 100%;
+            max-width: 680px;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.12);
+            overflow: hidden;
+            border: 3px solid #38bdf8;
+        }
+        .header {
+            background: linear-gradient(90deg, #1e3a8a, #2563eb);
+            color: white;
+            padding: 14px 16px;
+            text-align: center;
+        }
+        .school-name {
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: #fde047;
+            text-transform: uppercase;
+        }
+        .game-title {
+            font-size: 1.25rem;
+            font-weight: 800;
+            margin-top: 3px;
+        }
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8fafc;
+            padding: 10px 16px;
+            border-bottom: 1px solid #e2e8f0;
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+        .badge {
+            padding: 5px 14px;
+            border-radius: 20px;
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .score-badge {
+            background: #fef3c7;
+            color: #b45309;
+        }
+        .main-content {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+        }
+        .question-box {
+            background: #f8fafc;
+            border: 2px solid #cbd5e1;
+            border-radius: 14px;
+            padding: 14px 16px;
+            width: 100%;
+            text-align: center;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        .substance-visual {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 18px;
+            background: white;
+            padding: 14px 22px;
+            border-radius: 18px;
+            border: 2.5px solid #38bdf8;
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.1);
+            width: 100%;
+            max-width: 480px;
+            animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .photo-wrapper {
+            position: relative;
+            width: 132px;
+            height: 132px;
+            flex-shrink: 0;
+        }
+        .substance-photo {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            padding: 4px;
+            border-radius: 14px;
+            background: #ffffff;
+            border: 2.5px solid #0284c7;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14);
+        }
+        .upload-mini-btn {
+            position: absolute;
+            bottom: -6px;
+            right: -6px;
+            background: #1e40af;
+            color: white;
+            border: 2px solid white;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+            transition: transform 0.15s;
+        }
+        .upload-mini-btn:hover {
+            transform: scale(1.12);
+            background: #2563eb;
+        }
+        .substance-tag {
+            text-align: left;
+            flex: 1;
+        }
+        .substance-name {
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: #1e3a8a;
+            display: block;
+            line-height: 1.25;
+        }
+        .substance-chem {
+            font-size: 1.45rem;
+            font-weight: 800;
+            color: #dc2626;
+            background: #fee2e2;
+            border: 1.5px solid #fca5a5;
+            padding: 4px 12px;
+            border-radius: 10px;
+            display: inline-block;
+            margin-top: 6px;
+            letter-spacing: 0.5px;
+        }
+        .substance-hint {
+            display: block;
+            font-size: 0.74rem;
+            color: #64748b;
+            margin-top: 6px;
+        }
+        @keyframes popIn {
+            from { opacity: 0; transform: scale(0.88); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .question-text {
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #0f172a;
+            line-height: 1.5;
+        }
+        .formula {
+            color: #dc2626;
+            font-size: 1.32rem;
+            font-weight: 800;
+            background: #fee2e2;
+            padding: 2px 10px;
+            border-radius: 8px;
+            display: inline-block;
+        }
+        .compact-gesture-bar {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: #334155;
+            background: #f1f5f9;
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: 1px solid #cbd5e1;
+        }
+        .camera-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 340px;
+            aspect-ratio: 4 / 3;
+            border-radius: 14px;
+            overflow: hidden;
+            border: 3px solid #334155;
+            background: #0f172a;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+        }
+        video, canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+        .progress-bar-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.25);
+            z-index: 12;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: #38bdf8;
+            transition: width 0.08s linear, background-color 0.2s;
+        }
+        .progress-ring {
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.9);
+            color: #38bdf8;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            z-index: 10;
+            white-space: nowrap;
+            border: 1px solid rgba(56, 189, 248, 0.4);
+        }
+        .feedback-banner {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 12px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 0.95rem;
+            line-height: 1.4;
+            display: none;
+            animation: fadeIn 0.25s ease;
+        }
+        .feedback-correct {
+            background: #dcfce7;
+            color: #15803d;
+            border: 2px solid #22c55e;
+        }
+        .feedback-wrong {
+            background: #fee2e2;
+            color: #b91c1c;
+            border: 2px solid #ef4444;
+        }
+        .btn {
+            background: linear-gradient(180deg, #3b82f6, #1d4ed8);
+            color: white;
+            border: none;
+            padding: 13px 32px;
+            font-size: 1.05rem;
+            font-weight: 800;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+            transition: transform 0.15s, background 0.2s;
+        }
+        .btn:hover {
+            background: linear-gradient(180deg, #2563eb, #1e40af);
+            transform: translateY(-1px);
+        }
+        .btn:active {
+            transform: scale(0.98);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @media (max-width: 480px) {
+            .game-title { font-size: 1.08rem; }
+            .question-text { font-size: 1rem; }
+            .choice-card { font-size: 0.95rem; padding: 12px 6px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <!-- Tiêu đề trường & tên trò chơi -->
+    <div class="header">
+        <div class="school-name">TRƯỜNG THPT MỸ THỌ • NHÓM HÓA - TỔ LÝ - HÓA - SINH - CN</div>
+        <div class="game-title">🔍 TRUY TÌM HỢP CHẤT HỮU CƠ</div>
+    </div>
+
+    <!-- Thanh trạng thái câu hỏi & điểm số -->
+    <div class="status-bar">
+        <span class="badge" id="qCounter">Câu: 1 / 5</span>
+        <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+            <span id="saveToast" style="font-size: 0.78rem; color: #059669; font-weight: 700; display: none;">✅ Đã lưu ảnh!</span>
+            <button type="button" id="soundToggleBtn" onclick="toggleSound()" title="Bật/Tắt âm thanh trò chơi" style="background: #f59e0b; color: white; border: none; padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; cursor: pointer;">🔊 Âm thanh</button>
+            <button type="button" onclick="openGalleryModal()" title="Quản lý & tải lên đủ 5 ảnh cùng lúc" style="background: #1e40af; color: white; border: none; padding: 5px 11px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; cursor: pointer;">🖼️ Kho 5 Ảnh</button>
+            <button type="button" onclick="downloadSavedHtml()" title="Tải về file HTML đã gắn sẵn ảnh của bạn" style="background: #0f766e; color: white; border: none; padding: 5px 11px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; cursor: pointer;">💾 Tải HTML</button>
+            <span class="badge score-badge" id="scoreDisplay">Điểm: 0</span>
+        </div>
+    </div>
+
+    <!-- Modal quản lý & gắn nhanh cả 5 hình ảnh thực tế -->
+    <div id="galleryModal" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.65); z-index:100; justify-content:center; align-items:center; padding:12px;">
+        <div style="background:white; border-radius:18px; max-width:520px; width:100%; padding:18px; border:3px solid #38bdf8; box-shadow:0 20px 40px rgba(0,0,0,0.25); max-height:90vh; overflow-y:auto;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #e2e8f0; padding-bottom:8px;">
+                <h3 style="color:#1e3a8a; font-size:1.05rem;">🖼️ Gắn & Lưu Ảnh Cho 5 Câu Hỏi</h3>
+                <button type="button" onclick="closeGalleryModal()" style="background:#ef4444; color:white; border:none; border-radius:8px; padding:4px 10px; font-weight:700; cursor:pointer;">✕ Đóng</button>
+            </div>
+            <p style="font-size:0.82rem; color:#475569; margin-bottom:12px; line-height:1.4;">
+                Chọn ảnh từ máy của bạn cho từng chất bên dưới. Sau khi chọn xong, bấm <strong>"💾 Tải File HTML Đã Lưu Ảnh"</strong> để lưu vĩnh viễn trên máy tính (không bao giờ mất khi làm mới trang).
+            </p>
+            <div id="galleryList" style="display:flex; flex-direction:column; gap:10px;"></div>
+            <div style="margin-top:14px; display:flex; gap:8px; justify-content:flex-end;">
+                <button type="button" onclick="downloadSavedHtml()" style="background:#059669; color:white; border:none; padding:10px 16px; border-radius:10px; font-weight:700; cursor:pointer; font-size:0.9rem;">💾 Tải File HTML Đã Lưu Ảnh</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Màn hình bắt đầu -->
+    <div class="main-content" id="startScreen">
+        <div class="question-box">
+            <p class="question-text">
+                Giơ tay tạo hình trước camera để chọn đáp án:<br>
+                <span style="color: #166534; font-weight: 800;">👍 Bàn tay Like</span> &rarr; Chọn <strong>ĐÚNG</strong><br>
+                <span style="color: #92400e; font-weight: 800;">✋ Giơ 5 ngón xòe</span> &rarr; Chọn <strong>SAI</strong>
+                <span style="font-size: 0.86rem; color: #475569; font-weight: 500; display: block; margin-top: 8px;">
+                    (Giữ nguyên tư thế tay 1 giây để chốt đáp án hoặc bấm trực tiếp vào thẻ)
+                </span>
+            </p>
+        </div>
+        <button class="btn" onclick="startGame()">BẮT ĐẦU CHƠI</button>
+    </div>
+
+    <!-- Màn hình chơi chính -->
+    <div class="main-content" id="playScreen" style="display: none;">
+        <div class="question-box">
+            <div class="substance-visual" id="substanceVisual"></div>
+            <input type="file" id="customImgInput" accept="image/*" style="display: none;" onchange="handleCustomImageUpload(event)">
+            <div class="question-text" id="questionText">Đang tải câu hỏi...</div>
+        </div>
+
+        <div class="compact-gesture-bar">
+            <button type="button" onclick="submitAnswer(true)" style="background:none; border:none; color:#15803d; font-weight:800; cursor:pointer; font-size:0.9rem;">👍 Like = ĐÚNG</button>
+            <span style="color: #94a3b8;">|</span>
+            <button type="button" onclick="submitAnswer(false)" style="background:none; border:none; color:#b45309; font-weight:800; cursor:pointer; font-size:0.9rem;">✋ Xòe 5 ngón = SAI</button>
+        </div>
+
+        <div class="feedback-banner" id="feedbackBanner"></div>
+
+        <!-- Khung camera nhận diện bàn tay -->
+        <div class="camera-wrapper" id="cameraWrapper">
+            <div class="progress-bar-container">
+                <div class="progress-bar-fill" id="progressBarFill"></div>
+            </div>
+            <video id="inputVideo" autoplay playsinline></video>
+            <canvas id="outputCanvas"></canvas>
+            <div class="progress-ring" id="gestureStatus">Đang bật camera...</div>
+        </div>
+    </div>
+
+    <!-- Màn hình kết thúc -->
+    <div class="main-content" id="endScreen" style="display: none;">
+        <div class="question-box">
+            <h2 style="color: #1e3a8a; margin-bottom: 6px;">🎉 HOÀN THÀNH THỬ THÁCH!</h2>
+            <p class="question-text" id="finalScoreText"></p>
+        </div>
+        <button class="btn" onclick="restartGame()">CHƠI LẠI</button>
+    </div>
+</div>
+
+<script>
+    const STORAGE_KEY = 'hoa11_custom_images_v3';
+    const DB_NAME = 'Hoa11ImageStoreV3';
+    const STORE_NAME = 'images';
+
+    // Bộ 5 hình minh họa thực tế sắc nét tích hợp sẵn (mở lên hiển thị ngay lập tức, không bao giờ lỗi ảnh)
+    const builtInVisuals = {
+        limestone: 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240"><rect width="240" height="240" rx="20" fill="#e2e8f0"/><polygon points="25,185 65,85 130,60 195,95 218,185" fill="#f8fafc" stroke="#94a3b8" stroke-width="3"/><polygon points="65,85 130,60 120,135 55,145" fill="#ffffff"/><polygon points="130,60 195,95 180,165 120,135" fill="#cbd5e1"/><polygon points="15,195 55,145 110,160 100,200" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/><text x="120" y="224" font-family="sans-serif" font-size="16" font-weight="800" fill="#334155" text-anchor="middle">ĐÁ VÔI (CaCO₃)</text></svg>`),
+        alcohol: 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240"><rect width="240" height="240" rx="20" fill="#eff6ff"/><path d="M106,22 L134,22 L138,48 L102,48 Z" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/><rect x="98" y="46" width="44" height="18" rx="4" fill="#ffffff" stroke="#94a3b8" stroke-width="2"/><path d="M82,82 Q82,66 102,64 L138,64 Q158,66 158,82 L158,196 Q158,206 146,206 L94,206 Q82,206 82,196 Z" fill="#0ea5e9" stroke="#0284c7" stroke-width="2.5"/><rect x="84" y="106" width="72" height="78" fill="#ffffff"/><rect x="84" y="106" width="72" height="14" fill="#dc2626"/><text x="120" y="140" font-family="sans-serif" font-size="13" font-weight="900" fill="#dc2626" text-anchor="middle">Cồn 90° VP</text><text x="120" y="157" font-family="sans-serif" font-size="12" font-weight="800" fill="#1e3a8a" text-anchor="middle">( Xanh )</text><rect x="84" y="172" width="72" height="12" fill="#0284c7"/><text x="120" y="227" font-family="sans-serif" font-size="15" font-weight="800" fill="#1e3a8a" text-anchor="middle">CỒN Y TẾ 90°</text></svg>`),
+        vinegar: 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240"><rect width="240" height="240" rx="20" fill="#fefce8"/><rect x="102" y="18" width="36" height="22" rx="6" fill="#facc15" stroke="#ca8a04" stroke-width="2"/><path d="M88,65 Q88,45 104,40 L136,40 Q152,45 152,65 L154,195 Q154,206 142,206 L98,206 Q86,206 86,195 Z" fill="#fef08a" stroke="#eab308" stroke-width="2.5"/><rect x="88" y="96" width="64" height="74" rx="8" fill="#16a34a"/><ellipse cx="120" cy="133" rx="29" ry="26" fill="#fef08a"/><text x="120" y="130" font-family="sans-serif" font-size="13" font-weight="900" fill="#dc2626" text-anchor="middle">Giấm táo</text><circle cx="120" cy="146" r="8" fill="#ef4444"/><text x="120" y="227" font-family="sans-serif" font-size="15" font-weight="800" fill="#854d0e" text-anchor="middle">GIẤM ĂN (CH₃COOH)</text></svg>`),
+        sugar: 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240"><rect width="240" height="240" rx="20" fill="#fffbeb"/><rect x="58" y="24" width="124" height="182" rx="12" fill="#eab308" stroke="#ca8a04" stroke-width="3"/><rect x="64" y="152" width="112" height="48" rx="6" fill="#fef3c7"/><rect x="86" y="34" width="68" height="20" rx="10" fill="#15803d"/><text x="120" y="48" font-family="sans-serif" font-size="11" font-weight="800" fill="#ffffff" text-anchor="middle">Biên Hòa</text><text x="120" y="88" font-family="sans-serif" font-size="22" font-weight="900" fill="#ffffff" text-anchor="middle">ĐƯỜNG</text><text x="120" y="114" font-family="sans-serif" font-size="22" font-weight="900" fill="#ffffff" text-anchor="middle">MÍA</text><rect x="115" y="132" width="54" height="10" rx="3" fill="#84cc16" stroke="#4d7c0f" stroke-width="1.5"/><text x="120" y="227" font-family="sans-serif" font-size="15" font-weight="800" fill="#92400e" text-anchor="middle">ĐƯỜNG MÍA</text></svg>`),
+        gas: 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240"><rect width="240" height="240" rx="20" fill="#f1f5f9"/><rect x="44" y="75" width="46" height="115" rx="16" fill="#0284c7" stroke="#0369a1" stroke-width="2.5"/><rect x="54" y="58" width="26" height="18" rx="4" fill="#0284c7"/><rect x="97" y="55" width="48" height="135" rx="18" fill="#ec4899" stroke="#be185d" stroke-width="2.5"/><rect x="108" y="38" width="26" height="18" rx="4" fill="#ec4899"/><text x="121" y="128" font-family="sans-serif" font-size="12" font-weight="900" fill="#ffffff" text-anchor="middle">GAS</text><rect x="150" y="88" width="46" height="102" rx="16" fill="#ef4444" stroke="#b91c1c" stroke-width="2.5"/><rect x="160" y="71" width="26" height="18" rx="4" fill="#ef4444"/><text x="120" y="227" font-family="sans-serif" font-size="15" font-weight="800" fill="#991b1b" text-anchor="middle">BÌNH KHÍ GA</text></svg>`)
+    };
+
+    // Bộ 5 câu hỏi kèm ảnh tích hợp sẵn (tự động ưu tiên ảnh bạn đã tải lên nếu có)
+    const questions = [
+        {
+            title: 'Đá vôi (Calcium carbonate)',
+            chem: 'CaCO₃',
+            imgUrl: builtInVisuals.limestone,
+            fallbackUrl: builtInVisuals.limestone,
+            html: 'Thành phần chính của <strong>đá vôi</strong> có công thức hóa học là <span class="formula">CaCO<sub>3</sub></span>. Chất này thuộc loại <strong>hợp chất hữu cơ</strong>.',
+            answer: false,
+            explain: 'Sai! Đá vôi (CaCO₃) là muối carbonate, thuộc nhóm hợp chất vô cơ.'
+        },
+        {
+            title: 'Cồn y tế 90° (Ethanol)',
+            chem: 'C₂H₅OH',
+            imgUrl: builtInVisuals.alcohol,
+            fallbackUrl: builtInVisuals.alcohol,
+            html: 'Thành phần chính của <strong>cồn y tế</strong> là ethanol, có công thức phân tử là <span class="formula">C<sub>2</sub>H<sub>5</sub>OH</span>. Chất này thuộc loại <strong>hợp chất hữu cơ</strong>.',
+            answer: true,
+            explain: 'Đúng! Ethanol (C₂H₅OH) là hợp chất hữu cơ (dẫn xuất của hydrocarbon).'
+        },
+        {
+            title: 'Giấm ăn (Acetic acid)',
+            chem: 'CH₃COOH',
+            imgUrl: builtInVisuals.vinegar,
+            fallbackUrl: builtInVisuals.vinegar,
+            html: '<strong>Giấm ăn</strong> chứa thành phần chính là acetic acid với công thức hóa học <span class="formula">CH<sub>3</sub>COOH</span>. Chất này thuộc loại <strong>hợp chất hữu cơ</strong>.',
+            answer: true,
+            explain: 'Đúng! Acetic acid (CH₃COOH) là acid hữu cơ.'
+        },
+        {
+            title: 'Đường mía (Saccharose)',
+            chem: 'C₁₂H₂₂O₁₁',
+            imgUrl: builtInVisuals.sugar,
+            fallbackUrl: builtInVisuals.sugar,
+            html: 'Thành phần chính của <strong>đường mía</strong> (saccharose) có công thức phân tử là <span class="formula">C<sub>12</sub>H<sub>22</sub>O<sub>11</sub></span>. Chất này thuộc loại <strong>hợp chất vô cơ</strong>.',
+            answer: false,
+            explain: 'Sai! Đường mía (C₁₂H₂₂O₁₁) là hợp chất hữu cơ.'
+        },
+        {
+            title: 'Khí ga đun nấu (Propane & Butane)',
+            chem: 'C₃H₈, C₄H₁₀',
+            imgUrl: builtInVisuals.gas,
+            fallbackUrl: builtInVisuals.gas,
+            html: 'Thành phần chính của <strong>khí ga</strong> đun nấu là hỗn hợp propane (<span class="formula">C<sub>3</sub>H<sub>8</sub></span>) và butane (<span class="formula">C<sub>4</sub>H<sub>10</sub></span>). Các chất này đều là <strong>hợp chất hữu cơ</strong>.',
+            answer: true,
+            explain: 'Đúng! Propane và butane đều là hydrocarbon (hợp chất hữu cơ).'
+        }
+    ];
+
+    let currentIdx = 0;
+    let score = 0;
+    let canAnswer = false;
+    let holdGesture = null;
+    let holdStartTime = 0;
+    let lastTickStep = 0;
+    let cameraStarted = false;
+    const HOLD_DURATION = 1000;
+
+    // Mở IndexedDB để lưu ảnh dung lượng lớn vĩnh viễn trên trình duyệt
+    function openImageDB() {
+        return new Promise((resolve, reject) => {
+            if (!window.indexedDB) return reject('No IndexedDB');
+            const req = indexedDB.open(DB_NAME, 1);
+            req.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains(STORE_NAME)) {
+                    db.createObjectStore(STORE_NAME);
+                }
+            };
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+        });
+    }
+
+    // Lưu từng ảnh vào cả IndexedDB và localStorage
+    async function persistQuestionImage(index, dataUrl) {
+        try {
+            const db = await openImageDB();
+            const tx = db.transaction(STORE_NAME, 'readwrite');
+            tx.objectStore(STORE_NAME).put(dataUrl, `q_${index}`);
+        } catch (e) { /* Dự phòng bằng localStorage */ }
+
+        try {
+            const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+            saved[index] = dataUrl;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+        } catch (e) { /* Bỏ qua nếu vượt dung lượng localStorage */ }
+    }
+
+    // Khôi phục toàn bộ hình ảnh đã lưu ngay khi mở trò chơi
+    async function loadSavedImages() {
+        try {
+            const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+            Object.keys(saved).forEach((idx) => {
+                if (questions[idx] && saved[idx]) {
+                    questions[idx].imgUrl = saved[idx];
+                }
+            });
+        } catch (err) { /* Bỏ qua */ }
+
+        try {
+            const db = await openImageDB();
+            const tx = db.transaction(STORE_NAME, 'readonly');
+            const store = tx.objectStore(STORE_NAME);
+            questions.forEach((q, idx) => {
+                const getReq = store.get(`q_${idx}`);
+                getReq.onsuccess = () => {
+                    if (getReq.result) {
+                        questions[idx].imgUrl = getReq.result;
+                        if (idx === currentIdx) {
+                            const imgEl = document.getElementById('substancePhotoEl');
+                            if (imgEl) imgEl.src = getReq.result;
+                        }
+                    }
+                };
+            });
+        } catch (err) { /* Bỏ qua */ }
+    }
+    loadSavedImages();
+
+    // Bộ tổng hợp âm thanh Gameshow đa tầng (Web Audio API)
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    let soundEnabled = true;
+
+    function toggleSound() {
+        soundEnabled = !soundEnabled;
+        const btn = document.getElementById('soundToggleBtn');
+        if (btn) {
+            btn.innerText = soundEnabled ? '🔊 Âm thanh' : '🔇 Tắt tiếng';
+            btn.style.background = soundEnabled ? '#f59e0b' : '#64748b';
+        }
+        if (soundEnabled) {
+            playMarimbaNote(659.25, 0.16, 0, 0.22);
+        }
+    }
+
+    // Nốt nhạc chuông/Marimba êm tai có hài âm và độ ngân tự nhiên
+    function playMarimbaNote(freq, duration = 0.25, delay = 0, volume = 0.22) {
+        if (!soundEnabled) return;
+        try {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const now = audioCtx.currentTime + delay;
+
+            // Sóng chính (sine) + sóng hài âm (triangle) tạo độ vang ấm
+            const oscMain = audioCtx.createOscillator();
+            const oscHarm = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            oscMain.type = 'sine';
+            oscMain.frequency.setValueAtTime(freq, now);
+
+            oscHarm.type = 'triangle';
+            oscHarm.frequency.setValueAtTime(freq * 2, now);
+
+            const harmGain = audioCtx.createGain();
+            harmGain.gain.setValueAtTime(0.22, now);
+
+            gain.gain.setValueAtTime(0.001, now);
+            gain.gain.linearRampToValueAtTime(volume, now + 0.015);
+            gain.gain.exponentialRampToValueAtTime(0.0008, now + duration);
+
+            oscMain.connect(gain);
+            oscHarm.connect(harmGain);
+            harmGain.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            oscMain.start(now);
+            oscHarm.start(now);
+            oscMain.stop(now + duration + 0.02);
+            oscHarm.stop(now + duration + 0.02);
+        } catch (e) { /* Bỏ qua nếu trình duyệt chặn phát tự động */ }
+    }
+
+    // Nhạc hiệu mở màn rộn ràng khi bấm Bắt đầu
+    function playStartFanfare() {
+        playMarimbaNote(523.25, 0.18, 0.00, 0.20); // C5
+        playMarimbaNote(659.25, 0.18, 0.09, 0.20); // E5
+        playMarimbaNote(783.99, 0.18, 0.18, 0.22); // G5
+        playMarimbaNote(1046.50, 0.35, 0.27, 0.25); // C6
+    }
+
+    // Âm thanh lấp lánh nhiều tầng khi trả lời ĐÚNG
+    function playCorrectSound() {
+        const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51]; // C5 - E5 - G5 - C6 - E6
+        notes.forEach((f, idx) => {
+            playMarimbaNote(f, idx === notes.length - 1 ? 0.45 : 0.18, idx * 0.075, 0.22);
+        });
+    }
+
+    // Tiếng còi trầm ấm nhẹ nhàng khi trả lời SAI (không gây chói tai)
+    function playWrongSound() {
+        if (!soundEnabled) return;
+        try {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const notes = [311.13, 246.94]; // Eb4 -> B3 trượt nhẹ
+            notes.forEach((freq, idx) => {
+                const now = audioCtx.currentTime + idx * 0.18;
+                const osc = audioCtx.createOscillator();
+                const filter = audioCtx.createBiquadFilter();
+                const gain = audioCtx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(freq, now);
+                osc.frequency.exponentialRampToValueAtTime(freq * 0.92, now + 0.24);
+
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(650, now);
+
+                gain.gain.setValueAtTime(0.001, now);
+                gain.gain.linearRampToValueAtTime(0.18, now + 0.02);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.26);
+
+                osc.connect(filter);
+                filter.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.28);
+            });
+        } catch (e) { /* Bỏ qua */ }
+    }
+
+    // Nhạc chúc mừng hoàn thành thử thách
+    function playVictorySound() {
+        const melody = [
+            { f: 523.25, d: 0.16, t: 0.00 }, // C5
+            { f: 659.25, d: 0.16, t: 0.12 }, // E5
+            { f: 783.99, d: 0.16, t: 0.24 }, // G5
+            { f: 1046.50, d: 0.28, t: 0.36 }, // C6
+            { f: 880.00, d: 0.16, t: 0.56 }, // A5
+            { f: 1046.50, d: 0.55, t: 0.70 } // C6 ngân dài
+        ];
+        melody.forEach(n => playMarimbaNote(n.f, n.d, n.t, 0.25));
+    }
+
+    // Bắt đầu chơi
+    function startGame() {
+        document.getElementById('startScreen').style.display = 'none';
+        document.getElementById('playScreen').style.display = 'flex';
+        playStartFanfare();
+        if (!cameraStarted) initCamera();
+        loadQuestion();
+    }
+
+    // Chơi lại từ đầu
+    function restartGame() {
+        currentIdx = 0;
+        score = 0;
+        document.getElementById('scoreDisplay').innerText = 'Điểm: 0';
+        document.getElementById('endScreen').style.display = 'none';
+        document.getElementById('playScreen').style.display = 'flex';
+        playStartFanfare();
+        loadQuestion();
+    }
+
+    // Chơi lại từ đầu
+    function restartGame() {
+        currentIdx = 0;
+        score = 0;
+        document.getElementById('scoreDisplay').innerText = 'Điểm: 0';
+        document.getElementById('endScreen').style.display = 'none';
+        document.getElementById('playScreen').style.display = 'flex';
+        loadQuestion();
+    }
+
+    // Hiển thị câu hỏi hiện tại kèm ảnh chụp thực tế và công thức hóa học
+    function loadQuestion() {
+        if (currentIdx >= questions.length) {
+            showEndScreen();
+            return;
+        }
+        const q = questions[currentIdx];
+        document.getElementById('qCounter').innerText = `Câu: ${currentIdx + 1} / ${questions.length}`;
+        document.getElementById('substanceVisual').innerHTML = `
+            <div class="photo-wrapper">
+                <img id="substancePhotoEl" class="substance-photo" src="${q.imgUrl}" alt="${q.title}" onerror="this.onerror=null; this.src='${q.fallbackUrl}';">
+                <button type="button" class="upload-mini-btn" title="Đổi ảnh từ máy tính" onclick="document.getElementById('customImgInput').click()">📷</button>
+            </div>
+            <div class="substance-tag">
+                <span class="substance-name">${q.title}</span>
+                <span class="substance-chem">${q.chem}</span>
+                <span class="substance-hint">Bấm 📷 để tải ảnh thực tế & tự động lưu</span>
+            </div>
+        `;
+        document.getElementById('questionText').innerHTML = q.html;
+        document.getElementById('feedbackBanner').style.display = 'none';
+        resetHoldProgress();
+        canAnswer = true;
+    }
+
+    // Cho phép giáo viên/người chơi tải trực tiếp file ảnh từ máy tính lên khung xem trước và tự động lưu bền vững
+    function processAndSaveImageFile(file, targetIndex, onComplete) {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = async function() {
+                const maxSide = 550;
+                let w = img.width;
+                let h = img.height;
+                if (w > maxSide || h > maxSide) {
+                    if (w > h) {
+                        h = Math.round((h * maxSide) / w);
+                        w = maxSide;
+                    } else {
+                        w = Math.round((w * maxSide) / h);
+                        h = maxSide;
+                    }
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, w, h);
+                const optimizedDataUrl = canvas.toDataURL('image/jpeg', 0.88);
+
+                questions[targetIndex].imgUrl = optimizedDataUrl;
+                if (targetIndex === currentIdx) {
+                    const imgEl = document.getElementById('substancePhotoEl');
+                    if (imgEl) imgEl.src = optimizedDataUrl;
+                }
+
+                await persistQuestionImage(targetIndex, optimizedDataUrl);
+
+                const toast = document.getElementById('saveToast');
+                if (toast) {
+                    toast.style.display = 'inline';
+                    setTimeout(() => { toast.style.display = 'none'; }, 2500);
+                }
+                if (onComplete) onComplete(optimizedDataUrl);
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function handleCustomImageUpload(event) {
+        const file = event.target.files[0];
+        processAndSaveImageFile(file, currentIdx);
+        event.target.value = '';
+    }
+
+    // Mở bảng Kho 5 Ảnh để chọn nhanh tất cả hình chụp từ máy tính
+    function openGalleryModal() {
+        const listEl = document.getElementById('galleryList');
+        listEl.innerHTML = questions.map((q, idx) => `
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; background:#f8fafc; padding:8px 12px; border-radius:12px; border:1px solid #cbd5e1;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <img id="galImg_${idx}" src="${q.imgUrl}" style="width:52px; height:52px; object-fit:contain; background:white; border-radius:8px; border:1px solid #94a3b8;">
+                    <div>
+                        <div style="font-weight:800; font-size:0.88rem; color:#0f172a;">Câu ${idx + 1}: ${q.title}</div>
+                        <div style="font-size:0.8rem; font-weight:700; color:#dc2626;">${q.chem}</div>
+                    </div>
+                </div>
+                <label style="background:#2563eb; color:white; padding:6px 12px; border-radius:8px; font-size:0.8rem; font-weight:700; cursor:pointer; white-space:nowrap;">
+                    Chọn ảnh
+                    <input type="file" accept="image/*" style="display:none;" onchange="handleGalleryFile(event, ${idx})">
+                </label>
+            </div>
+        `).join('');
+        document.getElementById('galleryModal').style.display = 'flex';
+    }
+
+    function closeGalleryModal() {
+        document.getElementById('galleryModal').style.display = 'none';
+    }
+
+    function handleGalleryFile(event, idx) {
+        const file = event.target.files[0];
+        processAndSaveImageFile(file, idx, (newUrl) => {
+            const thumb = document.getElementById(`galImg_${idx}`);
+            if (thumb) thumb.src = newUrl;
+        });
+        event.target.value = '';
+    }
+
+    // Xuất và tải về file HTML hoàn chỉnh chứa sẵn toàn bộ hình ảnh bạn đã chỉnh sửa
+    function downloadSavedHtml() {
+        const docClone = document.documentElement.cloneNode(true);
+        // Xóa trạng thái động đang hiển thị trên DOM clone để file tải về mở lên từ màn hình bắt đầu sạch đẹp
+        const startEl = docClone.querySelector('#startScreen');
+        const playEl = docClone.querySelector('#playScreen');
+        const endEl = docClone.querySelector('#endScreen');
+        if (startEl) startEl.style.display = 'flex';
+        if (playEl) playEl.style.display = 'none';
+        if (endEl) endEl.style.display = 'none';
+
+        // Nhúng trực tiếp mảng hình ảnh đã chỉnh sửa vào đoạn script khởi tạo
+        const savedMap = {};
+        questions.forEach((q, i) => {
+            savedMap[i] = q.imgUrl;
+        });
+        const injectScript = docClone.ownerDocument.createElement('script');
+        injectScript.textContent = `
+            (function() {
+                const embeddedImages = ${JSON.stringify(savedMap)};
+                if (typeof questions !== 'undefined') {
+                    questions.forEach((q, idx) => {
+                        if (embeddedImages[idx]) q.imgUrl = embeddedImages[idx];
+                    });
+                }
+            })();
+        `;
+        docClone.querySelector('body').appendChild(injectScript);
+
+        const htmlContent = '<!DOCTYPE html>\n' + docClone.outerHTML;
+        const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'Truy-Tim-Hop-Chat-Huu-Co.html';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    // Xử lý chọn đáp án
+    function submitAnswer(userChoice) {
+        if (!canAnswer) return;
+        canAnswer = false;
+        resetHoldProgress();
+
+        const q = questions[currentIdx];
+        const isCorrect = (userChoice === q.answer);
+        const banner = document.getElementById('feedbackBanner');
+
+        if (isCorrect) {
+            score += 20;
+            document.getElementById('scoreDisplay').innerText = `Điểm: ${score}`;
+            banner.className = 'feedback-banner feedback-correct';
+            banner.innerText = `✅ CHÍNH XÁC! ${q.explain}`;
+            playCorrectSound();
+        } else {
+            banner.className = 'feedback-banner feedback-wrong';
+            banner.innerText = `❌ CHƯA ĐÚNG! ${q.explain}`;
+            playWrongSound();
+        }
+        banner.style.display = 'block';
+
+        setTimeout(() => {
+            currentIdx++;
+            loadQuestion();
+        }, 2500);
+    }
+
+    // Màn hình kết thúc
+    function showEndScreen() {
+        document.getElementById('playScreen').style.display = 'none';
+        document.getElementById('endScreen').style.display = 'flex';
+        document.getElementById('finalScoreText').innerHTML =
+            `Bạn đạt được <span style="color:#dc2626; font-size:1.6rem; font-weight:800;">${score} / ${questions.length * 20}</span> điểm!`;
+        playVictorySound();
+    }
+
+    // Phân loại cử chỉ bàn tay dựa trên 21 điểm mốc MediaPipe Hands
+    function classifyHandGesture(landmarks) {
+        const wrist = landmarks[0];
+
+        // Kiểm tra 4 ngón dài (Trỏ: 8/6, Giữa: 12/10, Áp út: 16/14, Út: 20/18) dựa trên khoảng cách tới cổ tay
+        const isFingerExtended = (tipIdx, pipIdx) => {
+            const dTip = Math.hypot(landmarks[tipIdx].x - wrist.x, landmarks[tipIdx].y - wrist.y);
+            const dPip = Math.hypot(landmarks[pipIdx].x - wrist.x, landmarks[pipIdx].y - wrist.y);
+            return dTip > dPip * 1.12;
+        };
+
+        const indexUp = isFingerExtended(8, 6);
+        const middleUp = isFingerExtended(12, 10);
+        const ringUp = isFingerExtended(16, 14);
+        const pinkyUp = isFingerExtended(20, 18);
+
+        // Kiểm tra ngón cái (đầu ngón 4 xa khớp gốc ngón trỏ 5 và cao hơn khớp 3)
+        const thumbTip = landmarks[4];
+        const thumbIp = landmarks[3];
+        const indexMcp = landmarks[5];
+        const thumbDist = Math.hypot(thumbTip.x - indexMcp.x, thumbTip.y - indexMcp.y);
+        const thumbUp = thumbDist > 0.11 && thumbTip.y < thumbIp.y;
+
+        // 1. Bàn tay Like (👍): Ngón cái giơ cao, cả 4 ngón còn lại đều gập -> ĐÚNG
+        if (thumbUp && !indexUp && !middleUp && !ringUp && !pinkyUp) {
+            return { type: 'TRUE', label: '👍 Bàn tay Like (ĐÚNG)' };
+        }
+
+        // 2. Xòe 5 ngón (✋): Cả 4 ngón dài đều giơ thẳng và ngón cái mở rộng -> SAI
+        if (indexUp && middleUp && ringUp && pinkyUp && thumbDist > 0.09) {
+            return { type: 'FALSE', label: '✋ Giơ 5 ngón xòe (SAI)' };
+        }
+
+        return null;
+    }
+
+    // Khởi tạo nhận diện bàn tay MediaPipe Hands
+    function initCamera() {
+        cameraStarted = true;
+        const videoElement = document.getElementById('inputVideo');
+        const canvasElement = document.getElementById('outputCanvas');
+        const canvasCtx = canvasElement.getContext('2d');
+        const gestureStatus = document.getElementById('gestureStatus');
+
+        if (typeof Hands === 'undefined' || typeof Camera === 'undefined') {
+            gestureStatus.innerText = 'Chế độ bấm thẻ (Không tải được AI)';
+            return;
+        }
+
+        const hands = new Hands({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+        });
+
+        hands.setOptions({
+            maxNumHands: 1,
+            modelComplexity: 1,
+            minDetectionConfidence: 0.55,
+            minTrackingConfidence: 0.55
+        });
+
+        hands.onResults((results) => {
+            const container = document.getElementById('cameraWrapper');
+            canvasElement.width = container.clientWidth || 340;
+            canvasElement.height = container.clientHeight || 255;
+
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+
+            if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
+                canvasCtx.restore();
+                resetHoldProgress();
+                gestureStatus.innerText = canAnswer ? 'Giơ tay vào khung hình' : 'Đang chuyển câu...';
+                return;
+            }
+
+            const landmarks = results.multiHandLandmarks[0];
+            const detected = classifyHandGesture(landmarks);
+
+            // Vẽ khung xương bàn tay trực quan (màu xanh khi ĐÚNG, cam khi SAI, trắng khi chưa khớp hình)
+            const lineColor = detected ? (detected.type === 'TRUE' ? '#22c55e' : '#f59e0b') : '#38bdf8';
+            if (typeof drawConnectors !== 'undefined' && typeof HAND_CONNECTIONS !== 'undefined') {
+                drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, { color: lineColor, lineWidth: 3 });
+            }
+            if (typeof drawLandmarks !== 'undefined') {
+                drawLandmarks(canvasCtx, landmarks, { color: '#ffffff', fillColor: lineColor, lineWidth: 1.5, radius: 3.5 });
+            }
+            canvasCtx.restore();
+
+            if (!canAnswer) {
+                gestureStatus.innerText = 'Đang chuyển câu...';
+                return;
+            }
+
+            if (detected && detected.type === 'TRUE') {
+                handleHold('TRUE', true, detected.label, gestureStatus);
+            } else if (detected && detected.type === 'FALSE') {
+                handleHold('FALSE', false, detected.label, gestureStatus);
+            } else {
+                resetHoldProgress();
+                gestureStatus.innerText = 'Giơ 👍 (Đúng) hoặc ✋ (Sai)';
+            }
+        });
+
+        try {
+            const camera = new Camera(videoElement, {
+                onFrame: async () => {
+                    await hands.send({ image: videoElement });
+                },
+                width: 360,
+                height: 270
+            });
+            camera.start().catch(() => {
+                gestureStatus.innerText = 'Không có camera • Hãy bấm thẻ để chọn';
+            });
+        } catch (err) {
+            gestureStatus.innerText = 'Không có camera • Hãy bấm thẻ để chọn';
+        }
+    }
+
+    function resetHoldProgress() {
+        holdGesture = null;
+        lastTickStep = 0;
+        const fill = document.getElementById('progressBarFill');
+        if (fill) fill.style.width = '0%';
+    }
+
+    // Bộ đếm thời gian giữ nguyên tư thế tay 1.0 giây kèm âm thanh báo nhịp
+    function handleHold(dir, choiceValue, label, statusEl) {
+        const now = Date.now();
+        if (holdGesture !== dir) {
+            holdGesture = dir;
+            holdStartTime = now;
+            lastTickStep = 0;
+        }
+        const elapsed = now - holdStartTime;
+        const pct = Math.min(100, Math.round((elapsed / HOLD_DURATION) * 100));
+        // Phát tiếng chuông marimba nâng tông theo từng nấc 25% tiến độ
+        const step = Math.floor(pct / 25);
+        if (step > lastTickStep && step < 4) {
+            lastTickStep = step;
+            const stepFreqs = [523.25, 587.33, 659.25, 783.99];
+            playMarimbaNote(stepFreqs[step] || 659.25, 0.14, 0, 0.16);
+        }
+
+        const fill = document.getElementById('progressBarFill');
+        if (fill) {
+            fill.style.width = `${pct}%`;
+            fill.style.backgroundColor = choiceValue ? '#22c55e' : '#f59e0b';
+        }
+        statusEl.innerText = `${label}: ${pct}%`;
+
+        if (elapsed >= HOLD_DURATION) {
+            resetHoldProgress();
+            submitAnswer(choiceValue);
+        }
+    }
+</script>
+</body>
+</html>
